@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Custom Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 8px; border: 1px solid #ddd; }
+    th { background-color: #f0f0f0; }
+    input, select { margin-right: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 3px; }
+    .button { padding: 10px 20px; margin-top: 20px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 3px; }
+    .graph-container { margin: 20px 0; }
+    .graph { width: 100%; height: 400px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+<h1>Custom Report</h1>
+
+<table>
+  <tr>
+    <th>Data Point</th>
+    <th>Filters</th>
+  </tr>
+  <tr>
+    <td>Content Launch Date</td>
+    <td>
+      <input type="date" id="launch-date">
+      <input type="date" id="completion-date">
+    </td>
+  </tr>
+  <tr>
+    <td>Master-O ID</td>
+    <td><select id="master-o-id-filter"><option value="count">Count</option><option value="distinct">Distinct Count</option></select></td>
+  </tr>
+  <tr>
+    <td>Completion Status</td>
+    <td><select id="completion-status"><option value="count">Count</option><option value="percentage">Percentage</option></select></td>
+  </tr>
+  <tr>
+    <td>Challenges</td>
+    <td><select id="challenges"><option value="status">Status</option></select></td>
+  </tr>
+  <tr>
+    <td>Completed In Days</td>
+    <td><select id="completed-days"><option value="count">Count</option><option value="less-than">Less than</option><option value="greater-than">Greater than</option></select></td>
+  </tr>
+  <tr>
+    <td>Attempts</td>
+    <td><select id="attempts"><option value="status">Status</option></select></td>
+  </tr>
+  <tr>
+    <td>Score</td>
+    <td><select id="score"><option value="count">Count</option><option value="average">Average</option><option value="percentage">Percentage</option></select></td>
+  </tr>
+  <tr>
+    <td>Max Score</td>
+    <td><select id="max-score"><option value="count">Count</option></select></td>
+  </tr>
+  <tr>
+    <td>Time Spent</td>
+    <td><select id="time-spent"><option value="time-value">Time Value</option><option value="average">Average</option></select></td>
+  </tr>
+  <tr>
+    <td>Microskill Name</td>
+    <td><select id="microskill-name"><option value="count">Count</option><option value="distinct-count">Distinct Count</option><option value="distinct-value">Distinct Value</option></select></td>
+  </tr>
+  <tr>
+    <td>Login Status</td>
+    <td><select id="login-status"><option value="status">Status</option><option value="count">Count</option></select></td>
+  </tr>
+  <tr>
+    <td>Last Login Date</td>
+    <td>
+      <input type="date" id="last-login-start">
+      <input type="date" id="last-login-end">
+    </td>
+  </tr>
+</table>
+
+<button class="button" id="generate-report">Generate Report</button>
+<button class="button" id="download-csv">Download CSV</button>
+
+<div class="graph-container">
+  <canvas id="report-graph" class="graph"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.getElementById('generate-report').addEventListener('click', function() {
+  const launchDate = document.getElementById('launch-date').value;
+  const completionDate = document.getElementById('completion-date').value;
+
+  if (!launchDate || !completionDate) {
+    alert('Please select a valid date range.');
+    return;
+  }
+
+  const start = new Date(launchDate);
+  const end = new Date(completionDate);
+
+  if (start > end) {
+    alert('Launch date cannot be after completion date.');
+    return;
+  }
+
+  const labels = [];
+  const data = [];
+  const datasets = {};
+
+  const fields = ['Master-O ID', 'Completion Status', 'Challenges', 'Completed In Days', 'Attempts', 'Score', 'Max Score', 'Time Spent', 'Microskill Name', 'Login Status'];
+  fields.forEach(field => {
+    datasets[field] = [];
+  });
+
+  let currentDate = new Date(start);
+
+  while (currentDate <= end) {
+    labels.push(currentDate.toISOString().split('T')[0]);
+    fields.forEach(field => {
+      datasets[field].push(Math.floor(Math.random() * 100));
+    });
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  createGraph(labels, Object.keys(datasets).map(key => ({
+    label: key,
+    data: datasets[key],
+    borderColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`,
+    fill: false
+  })));
+
+  generateCSV(labels, datasets);
+});
+
+function createGraph(labels, datasets) {
+  const ctx = document.getElementById('report-graph').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { x: { type: 'category' }, y: { beginAtZero: true } }
+    }
+  });
+}
+
+function generateCSV(labels, datasets) {
+  const csvData = [
+    ['Date', ...Object.keys(datasets)],
+    ...labels.map((label, i) => [
+      label,
+      ...Object.keys(datasets).map(key => datasets[key][i])
+    ])
+  ];
+
+  const csvContent = "data:text/csv;charset=utf-8," + csvData.map(e => e.join(",")).join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "report.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+</script>
+
+</body>
+</html>
